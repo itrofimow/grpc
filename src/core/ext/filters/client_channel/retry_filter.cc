@@ -26,6 +26,7 @@
 #include <new>
 #include <string>
 #include <utility>
+#include <iostream>
 
 #include "absl/container/inlined_vector.h"
 #include "absl/status/status.h"
@@ -2221,6 +2222,8 @@ void RetryFilter::CallData::StartTransportStreamOpBatch(
       }
       if (chand_->event_engine_->Cancel(*retry_timer_handle_)) {
         GRPC_CALL_STACK_UNREF(owning_call_, "OnRetryTimer");
+      } else {
+        std::cerr << "failed to cancel timer for " << this << "\n";
       }
       retry_timer_handle_.reset();
       FreeAllCachedSendOpData();
@@ -2602,6 +2605,7 @@ void RetryFilter::CallData::OnRetryTimer() {
 void RetryFilter::CallData::OnRetryTimerLocked(void* arg,
                                                grpc_error_handle /*error*/) {
   auto* calld = static_cast<CallData*>(arg);
+  GPR_ASSERT(!calld->send_initial_metadata_.empty());
   calld->retry_timer_handle_.reset();
   calld->CreateCallAttempt(/*is_transparent_retry=*/false);
   GRPC_CALL_STACK_UNREF(calld->owning_call_, "OnRetryTimer");
